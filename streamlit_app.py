@@ -60,12 +60,18 @@ tab1, tab2, tab3 = st.tabs(["➕ Add", "📊 Summary", "📁 Records"])
 
 with tab1:
     st.header("Add Income")
-    source = st.text_input("Income Source")
-    amount = st.number_input("Amount", min_value=0.0)
-    frequency = st.selectbox("Frequency", ["monthly", "biweekly"])
-    if st.button("Add Income"):
+st.info("💡 You can add multiple income sources separately — like Job 1, Freelance, Side Hustle, etc.")
+
+source = st.text_input("Income Source (e.g., Job 1, Freelance)")
+amount = st.number_input("Amount", min_value=0.0, key="income_amt")
+frequency = st.selectbox("Frequency", ["monthly", "biweekly"])
+
+if st.button("Add Income"):
+    if source and amount > 0:
         add_income(source, amount, frequency)
-        st.success("Income added!")
+        st.success(f"✅ Income '{source}' added!")
+    else:
+        st.warning("⚠️ Please enter a source and amount.")
 
     st.header("Add Expense")
     category = st.text_input("Expense Category")
