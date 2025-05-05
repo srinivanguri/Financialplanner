@@ -65,3 +65,7 @@ Feel free to use, fork, or build on top of it!
 
 > Built with 💡 by the TACSiS Team  
 > “Your Voice. Your Power. Your TACSiS.”
+## 🗣 Feedback
+Have suggestions or ideas?  
+👉 [Click here to fill out our quick survey](https://forms.gle/VScw26geNBzwXoFX7)
+
