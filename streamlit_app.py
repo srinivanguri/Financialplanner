@@ -95,3 +95,8 @@ with tab3:
     st.header("All Expenses")
     cursor.execute("SELECT category, amount, recurring FROM expenses")
     st.dataframe(cursor.fetchall(), use_container_width=True)
+
+st.sidebar.markdown("### 📬 Feedback")
+st.sidebar.markdown("We value your input — help us improve!")
+st.sidebar.markdown("[👉 Take our quick survey](https://forms.gle/VScw26geNBzwXoFX7)")
+
