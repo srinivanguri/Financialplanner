@@ -1,102 +1,79 @@
 import streamlit as st
-import sqlite3
 
-# DB setup
-conn = sqlite3.connect("tacsis.db", check_same_thread=False)
-cursor = conn.cursor()
+st.set_page_config(page_title="TACSiS Enhanced", layout="centered")
+st.title("💰 TACSiS – Income & Expense Tracker")
 
-# Create tables
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS incomes (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    source TEXT,
-    amount REAL,
-    frequency TEXT
-)
-""")
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS expenses (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    category TEXT,
-    amount REAL,
-    recurring BOOLEAN
-)
-""")
-conn.commit()
+# Initialize session states
+if "job_count" not in st.session_state:
+    st.session_state.job_count = 2
+if "expense_count" not in st.session_state:
+    st.session_state.expense_count = 5
+if "total_income" not in st.session_state:
+    st.session_state.total_income = 0
+if "total_expense" not in st.session_state:
+    st.session_state.total_expense = 0
 
-# Helper functions
-def add_income(source, amount, frequency):
-    cursor.execute("INSERT INTO incomes (source, amount, frequency) VALUES (?, ?, ?)", (source, amount, frequency))
-    conn.commit()
+# ------------------- INCOME SECTION ------------------- #
+st.markdown("## Income Sources")
 
-def add_expense(category, amount, recurring):
-    cursor.execute("INSERT INTO expenses (category, amount, recurring) VALUES (?, ?, ?)", (category, amount, recurring))
-    conn.commit()
+income_inputs = []
+with st.form("income_form"):
+    for i in range(st.session_state.job_count):
+        col1, col2 = st.columns([2, 1])
+        with col1:
+            label = st.text_input(f"Job {i+1} Title", value=f"Job {i+1}", key=f"title_{i}")
+        with col2:
+            amount = st.number_input(f"Amount", min_value=0.0, step=100.0, key=f"amt_{i}")
+        income_inputs.append((label, amount))
 
-def get_total_income():
-    cursor.execute("SELECT amount, frequency FROM incomes")
-    rows = cursor.fetchall()
-    total = 0
-    for amount, freq in rows:
-        if freq == "monthly":
-            total += amount
-        elif freq == "biweekly":
-            total += (amount * 26) / 12
-    return round(total, 2)
+    add_job = st.form_submit_button("➕ Add Another Job")
+    submit_income = st.form_submit_button("✅ Done Submitting Income")
 
-def get_total_expenses():
-    cursor.execute("SELECT amount FROM expenses WHERE recurring = 1")
-    rows = cursor.fetchall()
-    return round(sum(row[0] for row in rows), 2)
+if add_job:
+    st.session_state.job_count += 1
 
-def get_net_savings():
-    return get_total_income() - get_total_expenses()
+if submit_income:
+    st.session_state.total_income = sum(x[1] for x in income_inputs)
+    st.success(f"💼 Total Monthly Income: ${st.session_state.total_income:,.2f}")
 
-# UI
-st.set_page_config(page_title="TACSiS Budget Planner", layout="centered")
-st.title("💰 TACSiS – Budget Planner MVP")
+# ------------------- EXPENSE SECTION ------------------- #
+st.markdown("---")
+st.markdown("## Expenses")
 
-tab1, tab2, tab3 = st.tabs(["➕ Add", "📊 Summary", "📁 Records"])
+default_expenses = ["Rent/Mortgage", "Internet", "Groceries", "Phone", "Subscriptions"]
+expense_inputs = []
 
-with tab1:
-    st.header("Add Income")
-st.info("💡 You can add multiple income sources separately — like Job 1, Freelance, Side Hustle, etc.")
+with st.form("expense_form"):
+    for i in range(st.session_state.expense_count):
+        col1, col2 = st.columns([2, 1])
+        with col1:
+            label = st.text_input(f"Expense Category {i+1}", 
+                                  value=default_expenses[i] if i < len(default_expenses) else "", 
+                                  key=f"exp_cat_{i}")
+        with col2:
+            amount = st.number_input(f"Amount", min_value=0.0, step=50.0, key=f"exp_amt_{i}")
+        expense_inputs.append((label, amount))
 
-source = st.text_input("Income Source (e.g., Job 1, Freelance)")
-amount = st.number_input("Amount", min_value=0.0, key="income_amt")
-frequency = st.selectbox("Frequency", ["monthly", "biweekly"])
+    add_exp = st.form_submit_button("➕ Add Another Expense")
+    submit_exp = st.form_submit_button("✅ Done Submitting Expenses")
 
-if st.button("Add Income"):
-    if source and amount > 0:
-        add_income(source, amount, frequency)
-        st.success(f"✅ Income '{source}' added!")
-    else:
-        st.warning("⚠️ Please enter a source and amount.")
+if add_exp:
+    st.session_state.expense_count += 1
 
-    st.header("Add Expense")
-    category = st.text_input("Expense Category")
-    exp_amount = st.number_input("Expense Amount", min_value=0.0, key="exp")
-    recurring = st.checkbox("Recurring", value=True)
-    if st.button("Add Expense"):
-        add_expense(category, exp_amount, recurring)
-        st.success("Expense added!")
+if submit_exp:
+    st.session_state.total_expense = sum(x[1] for x in expense_inputs)
+    st.success(f"💸 Total Monthly Expenses: ${st.session_state.total_expense:,.2f}")
 
-with tab2:
-    st.header("📊 Monthly Summary")
-    st.metric("Total Income", f"${get_total_income():,.2f}")
-    st.metric("Total Expenses", f"${get_total_expenses():,.2f}")
-    st.metric("Net Savings", f"${get_net_savings():,.2f}")
+# ------------------- REMAINING BALANCE ------------------- #
+if st.session_state.total_income and st.session_state.total_expense:
+    net_balance = st.session_state.total_income - st.session_state.total_expense
+    st.markdown("---")
+    st.subheader("📊 Net Monthly Balance")
 
-with tab3:
-    st.header("All Incomes")
-    cursor.execute("SELECT source, amount, frequency FROM incomes")
-    st.dataframe(cursor.fetchall(), use_container_width=True)
-
-    st.header("All Expenses")
-    cursor.execute("SELECT category, amount, recurring FROM expenses")
-    st.dataframe(cursor.fetchall(), use_container_width=True)
-
-st.sidebar.markdown("### 📬 Feedback")
-st.sidebar.markdown("We value your input — help us improve!")
-st.sidebar.markdown("[👉 Take our quick survey](https://forms.gle/VScw26geNBzwXoFX7)")
-
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.text_input("💼 Total Income", f"${st.session_state.total_income:,.2f}", disabled=True)
+    with col2:
+        st.text_input("💸 Total Expenses", f"${st.session_state.total_expense:,.2f}", disabled=True)
+    with col3:
+        st.text_input("🧾 Remaining Balance After Expenses", f"${net_balance:,.2f}", disabled=True)
